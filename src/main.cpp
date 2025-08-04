@@ -59,8 +59,8 @@ void loop() {
     // Update distance sensor regularly
     distanceSensor.update();
     
-    // Handle auto photo detection
-    apiServer.handleAutoPhoto();
+    // Auto photo detection disabled to prevent failures
+    // apiServer.handleAutoPhoto();
     
     // Periodic status monitoring
     if (currentTime - lastUpdate >= UPDATE_INTERVAL_MS * 10) { // Every 10 seconds
@@ -68,7 +68,7 @@ void loop() {
         Serial.printf("Status - Distance: %.1f cm | Gate: %s | Auto Photo: %s | Free Heap: %d\n",
                      distance,
                      servoController.isGateOpen() ? "OPEN" : "CLOSED",
-                     apiServer.isAutoPhotoEnabled() ? "ON" : "OFF",
+                     apiServer.isAutoPhotoEnabled() ? "OFF (disabled)" : "OFF",
                      ESP.getFreeHeap());
         
         lastUpdate = currentTime;

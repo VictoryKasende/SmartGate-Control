@@ -18,10 +18,10 @@ Un système de barrière intelligente modulaire utilisant une **architecture sé
 
 - 📏 **Mesure de distance** via capteur ultrasonique (seuil: 20cm)
 - 🚪 **Contrôle de barrière** via servo moteur (0° fermé, 90° ouvert)
-- � **Capture de photos** via ESP32-CAM dédié (manuelle et automatique)
+- 📸 **Capture de photos** via ESP32-CAM dédié (**manuelle uniquement**)
 - 🌐 **API REST complète** avec interface web responsive
-- � **Auto-photo activable/désactivable** avec intervalle configurable
-- � **Monitoring système** (heap, uptime, connectivité)
+- ⚙️ **Monitoring système** (heap, uptime, connectivité)
+- 🚫 **Auto-photo désactivée** (pour éviter les erreurs de communication)
 
 ## Architecture Technique
 
@@ -45,7 +45,7 @@ Retourne le statut complet du système
 {
   "distance": 15.2,
   "gate": false,
-  "auto_photo": true,
+  "auto_photo": false,
   "esp32cam_ip": "10.253.254.144",
   "esp32cam_reachable": true,
   "free_heap": 234567,
@@ -84,7 +84,7 @@ Contrôle la barrière
 ```
 
 ### POST /api/photo
-Demande de capture photo via ESP32-CAM
+Demande de capture photo via ESP32-CAM (**manuelle uniquement**)
 ```json
 {
   "status": "success",
@@ -104,12 +104,12 @@ Alias pour capture photo directe
 ```
 
 ### POST /api/auto
-Toggle auto-photo on/off
+Toggle auto-photo on/off (**fonctionnalité désactivée**)
 ```json
 {
   "status": "success",
-  "auto_photo": true,
-  "message": "Auto photo enabled"
+  "auto_photo": false,
+  "message": "Auto photo feature is disabled"
 }
 ```
 
@@ -128,7 +128,8 @@ Modifiez le fichier `include/ESP32Config.h` pour:
 - **ESP32-CAM IP**: ESP32CAM_IP = "10.253.254.144"
 - **Seuil de détection**: DETECTION_DISTANCE_CM = 20cm
 - **Pins**: SERVO_PIN=18, TRIG_PIN=2, ECHO_PIN=4, LED_PIN=2
-- **Intervalles**: UPDATE_INTERVAL_MS=1000, AUTO_PHOTO_INTERVAL_MS=5000
+- **Intervalles**: UPDATE_INTERVAL_MS=1000
+- **Auto-photo**: Désactivée dans le code (AUTO_PHOTO_INTERVAL_MS commenté)
 
 ## Compilation et Déploiement
 
@@ -156,7 +157,7 @@ curl -X POST "http://[IP_ESP32]/api/gate?action=open"
 # Fermer la barrière  
 curl -X POST "http://[IP_ESP32]/api/gate?action=close"
 
-# Prendre une photo via ESP32-CAM
+# Prendre une photo via ESP32-CAM (manuelle)
 curl -X POST "http://[IP_ESP32]/api/photo"
 
 # Statut système complet
@@ -165,17 +166,15 @@ curl "http://[IP_ESP32]/api/status"
 # Distance actuelle
 curl "http://[IP_ESP32]/api/distance"
 
-# Toggle auto-photo
-curl -X POST "http://[IP_ESP32]/api/auto"
-
 # Statut ESP32-CAM
 curl "http://[IP_ESP32]/api/esp32cam"
 ```
 
-## Fonctionnement Automatique
+## Fonctionnement du Système
 
 - **Monitoring continu** : Lecture distance toutes les 1000ms
-- **Auto-photo** : Déclenchable quand objet détecté < 20cm (intervalle 5000ms)
+- **Capture photo manuelle** : Via API `/api/photo` uniquement
+- **Auto-photo désactivée** : Plus de déclenchement automatique pour éviter les erreurs
 - **Architecture séparée** : ESP32 principal gère l'API, ESP32-CAM gère uniquement les photos
 - **Communication HTTP** : Requêtes vers ESP32-CAM via client HTTP intégré
 - **Interface Web** : Mise à jour temps réel via JavaScript
@@ -203,21 +202,19 @@ class SmartGateAPI:
         return response.json()
     
     def capture_photo(self):
+        """Capture manuelle uniquement"""
         response = requests.post(f"{self.base_url}/api/photo")
         return response.json()
     
     def get_distance(self):
         response = requests.get(f"{self.base_url}/api/distance")
         return response.json()["distance"]
-    
-    def toggle_auto_photo(self):
-        response = requests.post(f"{self.base_url}/api/auto")
-        return response.json()
 
 # Utilisation
 gate = SmartGateAPI("192.168.1.100")
 status = gate.get_status()
 print(f"Distance: {status['distance']} cm")
+print(f"Auto-photo: {status['auto_photo']} (désactivée)")
 ```
 
 ### JavaScript (Web)
@@ -240,6 +237,7 @@ class SmartGateAPI {
     }
     
     async capturePhoto() {
+        // Capture manuelle uniquement
         const response = await fetch(`${this.baseUrl}/api/photo`, {
             method: 'POST'
         });
@@ -288,8 +286,24 @@ SmartGate Control/
 - **IP Fixe ESP32-CAM** : Configurée à `10.253.254.144` pour communication stable
 - **Interface Web Intégrée** : Interface responsive avec monitoring temps réel
 - **Communication HTTP** : ESP32 principal communique avec ESP32-CAM via HTTP
-- **Auto-photo configurable** : Activable/désactivable via API ou interface web
+- **Auto-photo désactivée** : Pour éviter les erreurs "Auto photo request failed"
+- **Capture manuelle uniquement** : Via API `/api/photo` ou interface web
 - **Monitoring système** : Heap memory, uptime, connectivité ESP32-CAM
+
+## 🚫 Auto-Photo Désactivée
+
+L'auto-photo a été **désactivée par défaut** pour éviter les erreurs de communication. Les photos restent disponibles en **mode manuel uniquement** :
+
+- ✅ **Capture manuelle** : `POST /api/photo`
+- ✅ **Interface web** : Bouton "Capture Photo"
+- ❌ **Déclenchement automatique** : Désactivé
+- ❌ **Toggle auto** : Fonctionnalité inactive
+
+### Réactivation future (si nécessaire)
+Pour réactiver l'auto-photo plus tard :
+1. Décommentez le code dans `ESP32APIServer.cpp::handleAutoPhoto()`
+2. Décommentez `apiServer.handleAutoPhoto()` dans `main.cpp`
+3. Changez `autoPhotoEnabled(false)` en `autoPhotoEnabled(true)`
 
 ---
 
@@ -299,3 +313,4 @@ SmartGate Control/
 2. **Compiler ESP32 principal** : `pio run --target upload`
 3. **Accéder interface web** : IP affichée dans moniteur série
 4. **Tester API** : Utiliser curl ou interface web intégrée
+5. **Captures photos** : Mode manuel uniquement via `/api/photo`

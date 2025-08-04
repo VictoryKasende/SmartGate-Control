@@ -18,6 +18,6 @@
 // Configuration système
 #define DETECTION_DISTANCE_CM 20
 #define UPDATE_INTERVAL_MS 1000
-#define AUTO_PHOTO_INTERVAL_MS 5000
+#define AUTO_PHOTO_INTERVAL_MS 5000  // Disabled in code to prevent failures
 
 #endif

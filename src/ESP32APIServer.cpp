@@ -3,7 +3,7 @@
 
 ESP32APIServer::ESP32APIServer(int port) 
     : server(port), distanceSensor(nullptr), servoController(nullptr), 
-      camClient(nullptr), autoPhotoEnabled(true), lastAutoPhoto(0) {
+      camClient(nullptr), autoPhotoEnabled(false), lastAutoPhoto(0) {
 }
 
 bool ESP32APIServer::init(DistanceSensor* sensor, ServoController* servo, ESP32CAMClient* cam) {
@@ -320,6 +320,9 @@ void ESP32APIServer::setAutoPhoto(bool enabled) {
 }
 
 void ESP32APIServer::handleAutoPhoto() {
+    // Auto photo detection disabled to prevent request failures
+    // Uncomment to re-enable automatic photo capture
+    /*
     if (!autoPhotoEnabled || !distanceSensor || !camClient) {
         return;
     }
@@ -339,4 +342,5 @@ void ESP32APIServer::handleAutoPhoto() {
         
         lastAutoPhoto = currentTime;
     }
+    */
 }
