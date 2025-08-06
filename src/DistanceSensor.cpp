@@ -23,21 +23,25 @@ float DistanceSensor::readDistance() {
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
     
-    long duration = pulseIn(echoPin, HIGH, 30000); // Timeout 30ms
+    // Timeout très court pour éviter les blocages
+    long duration = pulseIn(echoPin, HIGH, 15000); // Timeout 15ms au lieu de 30ms
     
     if (duration == 0) {
-        return -1; // Erreur de lecture
+        // En cas d'erreur, garder la dernière valeur valide
+        return lastDistance > 0 ? lastDistance : 999.0;
     }
     
     float distance = duration * 0.034 / 2;
     
     // Filtrer les valeurs aberrantes
-    if (distance > 0 && distance < 400) {
+    if (distance > 2 && distance < 400) {
         lastDistance = distance;
         lastReadTime = millis();
+        return distance;
     }
     
-    return lastDistance;
+    // Retourner la dernière valeur valide si mesure aberrante
+    return lastDistance > 0 ? lastDistance : 999.0;
 }
 
 float DistanceSensor::getLastDistance() const {
@@ -50,7 +54,9 @@ bool DistanceSensor::isObjectDetected(float thresholdCm) {
 
 void DistanceSensor::update() {
     unsigned long currentTime = millis();
-    if (currentTime - lastReadTime >= 100) { // Lecture toutes les 100ms max
+    // Réduire la fréquence de lecture pour économiser CPU
+    if (currentTime - lastReadTime >= 500) { // Lecture toutes les 500ms au lieu de 100ms
         readDistance();
+        yield(); // Donner du temps au watchdog
     }
 }
