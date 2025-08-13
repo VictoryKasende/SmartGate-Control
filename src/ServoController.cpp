@@ -5,7 +5,12 @@ ServoController::ServoController(int pin, int openPos, int closedPos)
 }
 
 bool ServoController::init() {
-    servo.attach(servoPin);
+    ESP32PWM::allocateTimer(0);
+    ESP32PWM::allocateTimer(1);
+    ESP32PWM::allocateTimer(2);
+    ESP32PWM::allocateTimer(3);
+    servo.setPeriodHertz(50); // fréquence standard 50Hz pour servos
+    servo.attach(servoPin, 500, 2400); 
     delay(100);
     
     // Position initiale fermée
