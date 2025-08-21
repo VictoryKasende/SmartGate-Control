@@ -11,31 +11,52 @@ Un système de barrière intelligente modulaire utilisant une **architecture sé
 
 ### 📷 **ESP32-CAM** (Serveur Photo Dédié)
 - **Rôle** : Capture et stockage des photos uniquement
-- **IP Fixe** : `10.253.254.144`
-- **Communication** : HTTP Client depuis ESP32 principal
+- **IP Fixe** : `10.244.250.144`
+- **Communication** : HTTP Client depuis ESP32 principal (JSON seulement)
 
 ## Fonctionnalités
 
 - 📏 **Mesure de distance** via capteur ultrasonique (seuil: 20cm)
 - 🚪 **Contrôle de barrière** via servo moteur (0° fermé, 90° ouvert)
-- 📸 **Capture de photos** via ESP32-CAM dédié (**manuelle uniquement**)
-- 🌐 **API REST complète** avec interface web responsive
+- 📸 **Capture de photos** via ESP32-CAM dédié (**manuelle uniquement, anti-crash**)
+- 🌐 **API REST complète** avec interface web ultra-minimaliste
 - ⚙️ **Monitoring système** (heap, uptime, connectivité)
-- 🚫 **Auto-photo désactivée** (pour éviter les erreurs de communication)
+- 🚫 **Auto-photo désactivée** (prévention redémarrages)
+- 🔍 **Système debug avancé** (identification causes redémarrage)
 
 ## Architecture Technique
 
 ### Composants principaux:
-- `ESP32APIServer`: Serveur web avec endpoints REST et interface graphique
-- `DistanceSensor`: Gestion capteur ultrasonique HC-SR04
+- `ESP32APIServer`: Serveur web avec endpoints REST et interface ultra-légère
+- `DistanceSensor`: Gestion capteur ultrasonique HC-SR04 optimisé
 - `ServoController`: Contrôle servo moteur avec positions définies  
-- `ESP32CAMClient`: Client HTTP pour communication avec ESP32-CAM
+- `ESP32CAMClient`: Client HTTP ESP32-CAM (JSON uniquement, anti-crash)
+- `DebugHelper`: Système debug avancé pour identifier redémarrages
 
 ### Configuration matérielle (ESP32):
-- **Capteur ultrasonique**: TRIG_PIN 2, ECHO_PIN 4
-- **Servo moteur**: SERVO_PIN 18
-- **LED Status**: LED_PIN 2
+- **Capteur ultrasonique**: TRIG_PIN 5, ECHO_PIN 18
+- **Servo moteur**: SERVO_PIN 13
+- **LED Status**: LED_PIN 12
 - **WiFi**: WINS / WINNER20
+
+## Fonctionnalités anti-crash et debug
+
+### Protection mémoire
+- **Images**: Aucune image chargée en mémoire ESP32 (anti-crash)
+- **API**: JSON uniquement avec StaticJsonDocument pour économiser RAM
+- **Interface**: Web UI ultra-minimaliste (HTML pur, sans CSS/design)
+
+### Système debug avancé
+- **DebugHelper**: Logs détaillés des redémarrages et état système
+- **Watchdog**: Surveillance et alimentation automatique pour éviter resets
+- **Mémoire**: Monitoring heap en temps réel
+- **Opérations critiques**: Logs des actions importantes pour diagnostic
+
+### Optimisations performance
+- Réduction drastique utilisation mémoire
+- Suppression détection automatique photos (économie CPU)
+- Timeouts HTTP courts pour éviter blocages
+- Interface web minimale (pas de design, fonctionnel uniquement)
 
 ## Endpoints API
 
