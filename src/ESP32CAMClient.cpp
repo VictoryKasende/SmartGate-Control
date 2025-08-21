@@ -87,28 +87,8 @@ String ESP32CAMClient::getIP() const {
 }
 
 String ESP32CAMClient::requestPhotoData() {
-    unsigned long currentTime = millis();
-    
-    // Éviter les requêtes trop rapprochées
-    if (currentTime - lastPhotoRequest < 2000) {
-        Serial.println("Photo request too soon, skipping...");
-        return "";
-    }
-    
-    httpClient.begin("http://" + esp32camIP + "/stream");
-    httpClient.setTimeout(15000); // 15 secondes timeout pour image
-    
-    int httpResponseCode = httpClient.GET();
-    lastPhotoRequest = currentTime;
-    
-    if (httpResponseCode == 200) {
-        String imageData = httpClient.getString();
-        Serial.printf("Image data received: %d bytes\n", imageData.length());
-        httpClient.end();
-        return imageData;
-    } else {
-        Serial.printf("Image request failed: HTTP %d\n", httpResponseCode);
-        httpClient.end();
-        return "";
-    }
+    // FONCTION DÉSACTIVÉE - Cause des crashes mémoire
+    // Les images de 50KB+ font crash l'ESP32 principal
+    Serial.println("❌ requestPhotoData() disabled to prevent crashes");
+    return "";
 }

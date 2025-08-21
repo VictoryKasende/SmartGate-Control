@@ -1,5 +1,6 @@
 #include "ESP32APIServer.h"
 #include "ESP32Config.h"
+#include <ArduinoJson.h>
 
 ESP32APIServer::ESP32APIServer(int port) 
     : server(port), distanceSensor(nullptr), servoController(nullptr), 
@@ -42,7 +43,7 @@ void ESP32APIServer::setupRoutes() {
     
     // API Status général
     server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        JsonDocument doc;
+        StaticJsonDocument<512> doc;
         doc["distance"] = distanceSensor->getLastDistance();
         doc["gate"] = servoController->isGateOpen();
         doc["auto_photo"] = autoPhotoEnabled;
@@ -60,7 +61,7 @@ void ESP32APIServer::setupRoutes() {
     server.on("/api/distance", HTTP_GET, [this](AsyncWebServerRequest *request) {
         float distance = distanceSensor->readDistance();
         
-        JsonDocument doc;
+        StaticJsonDocument<256> doc;
         doc["distance"] = distance;
         doc["detected"] = distanceSensor->isObjectDetected(DETECTION_DISTANCE_CM);
         doc["threshold"] = DETECTION_DISTANCE_CM;
@@ -72,7 +73,7 @@ void ESP32APIServer::setupRoutes() {
     
     // API Gate Status
     server.on("/api/gate", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        JsonDocument doc;
+        StaticJsonDocument<256> doc;
         doc["gate"] = servoController->isGateOpen();
         doc["position"] = servoController->getCurrentAngle();
         
@@ -100,7 +101,7 @@ void ESP32APIServer::setupRoutes() {
             return;
         }
         
-        JsonDocument doc;
+        StaticJsonDocument<256> doc;
         doc["status"] = success ? "success" : "error";
         doc["gate"] = servoController->isGateOpen();
         doc["position"] = servoController->getCurrentAngle();
@@ -110,30 +111,33 @@ void ESP32APIServer::setupRoutes() {
         request->send(200, "application/json", response);
     });
     
-    // API Photo - Capture et retourne l'image
+    // API Photo - Demande capture à ESP32-CAM (JSON seulement)
     server.on("/api/photo", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        // Demander l'image directement depuis l'ESP32-CAM
-        String imageData = camClient->requestPhotoData();
+        // Ne plus charger l'image en mémoire - juste demander la capture
+        bool success = camClient->requestPhoto();
         
-        if (imageData.length() > 0) {
-            request->send(200, "image/jpeg", imageData);
+        StaticJsonDocument<512> doc;
+        if (success) {
+            doc["status"] = "success";
+            doc["message"] = "Photo capture requested";
+            doc["esp32cam_ip"] = camClient->getIP();
+            doc["note"] = "Access image directly at: http://" + camClient->getIP() + "/stream";
         } else {
-            JsonDocument doc;
             doc["status"] = "error";
             doc["message"] = "Photo capture failed";
             doc["esp32cam_ip"] = camClient->getIP();
-            
-            String response;
-            serializeJson(doc, response);
-            request->send(500, "application/json", response);
         }
+        
+        String response;
+        serializeJson(doc, response);
+        request->send(success ? 200 : 500, "application/json", response);
     });
     
     // API Photo JSON - Juste capturer (sans retourner l'image)
     server.on("/api/photo/capture", HTTP_POST, [this](AsyncWebServerRequest *request) {
         bool success = camClient->requestPhoto();
         
-        JsonDocument doc;
+        StaticJsonDocument<256> doc;
         doc["status"] = success ? "success" : "error";
         doc["message"] = success ? "Photo captured and saved to SD" : "Photo capture failed";
         doc["esp32cam_ip"] = camClient->getIP();
@@ -147,7 +151,7 @@ void ESP32APIServer::setupRoutes() {
     server.on("/api/auto", HTTP_POST, [this](AsyncWebServerRequest *request) {
         autoPhotoEnabled = !autoPhotoEnabled;
         
-        JsonDocument doc;
+        StaticJsonDocument<256> doc;
         doc["status"] = "success";
         doc["auto_photo"] = autoPhotoEnabled;
         doc["message"] = autoPhotoEnabled ? "Auto photo enabled" : "Auto photo disabled";

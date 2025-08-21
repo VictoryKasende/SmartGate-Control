@@ -7,7 +7,7 @@
 #define WEB_SERVER_PORT 80
 
 // Configuration ESP32-CAM
-#define ESP32CAM_IP "172.27.163.144"
+#define ESP32CAM_IP "10.244.250.144"
 
 // Configuration matérielle ESP32
 #define SERVO_PIN 13

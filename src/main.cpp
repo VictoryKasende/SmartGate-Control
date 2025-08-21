@@ -73,8 +73,7 @@ void loop() {
     DebugHelper::checkMemory();
     DebugHelper::feedWatchdog();
     
-    // Update distance sensor moins fréquemment
-    DebugHelper::logCriticalOperation("Distance sensor update");
+    // Update distance sensor SANS LOG pour éviter le spam
     distanceSensor.update();
     DebugHelper::feedWatchdog();
     
@@ -83,7 +82,6 @@ void loop() {
     
     // Monitoring moins fréquent pour économiser CPU
     if (currentTime - lastUpdate >= UPDATE_INTERVAL_MS * 15) { // Every 30 seconds au lieu de 10
-        DebugHelper::logCriticalOperation("Status monitoring");
         float distance = distanceSensor.getLastDistance();
         Serial.printf("📊 Status - Distance: %.1f cm | Gate: %s | Heap: %d\n",
                      distance,

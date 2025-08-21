@@ -13,7 +13,7 @@ private:
     int closedAngle;
     
 public:
-    ServoController(int pin, int openPos = 90, int closedPos = 0);
+    ServoController(int pin, int openPos = 0, int closedPos = 95);
     bool init();
     bool openGate();
     bool closeGate();
