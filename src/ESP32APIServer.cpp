@@ -54,7 +54,10 @@ void ESP32APIServer::setupRoutes() {
         
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json", response);
+        
+        AsyncWebServerResponse *resp = request->beginResponse(200, "application/json", response);
+        resp->addHeader("Access-Control-Allow-Origin", "*");
+        request->send(resp);
     });
     
     // API Distance
@@ -111,40 +114,15 @@ void ESP32APIServer::setupRoutes() {
         request->send(200, "application/json", response);
     });
     
-    // API Photo - Demande capture à ESP32-CAM (JSON seulement)
-    server.on("/api/photo", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        // Ne plus charger l'image en mémoire - juste demander la capture
-        bool success = camClient->requestPhoto();
+    // API Photo - Redirige vers ESP32-CAM stream avec CORS
+    server.on("/api/photo", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        // Redirection directe vers le stream ESP32-CAM
+        String streamUrl = "http://" + camClient->getIP() + "/stream";
         
-        StaticJsonDocument<512> doc;
-        if (success) {
-            doc["status"] = "success";
-            doc["message"] = "Photo capture requested";
-            doc["esp32cam_ip"] = camClient->getIP();
-            doc["note"] = "Access image directly at: http://" + camClient->getIP() + "/stream";
-        } else {
-            doc["status"] = "error";
-            doc["message"] = "Photo capture failed";
-            doc["esp32cam_ip"] = camClient->getIP();
-        }
-        
-        String response;
-        serializeJson(doc, response);
-        request->send(success ? 200 : 500, "application/json", response);
-    });
-    
-    // API Photo JSON - Juste capturer (sans retourner l'image)
-    server.on("/api/photo/capture", HTTP_POST, [this](AsyncWebServerRequest *request) {
-        bool success = camClient->requestPhoto();
-        
-        StaticJsonDocument<256> doc;
-        doc["status"] = success ? "success" : "error";
-        doc["message"] = success ? "Photo captured and saved to SD" : "Photo capture failed";
-        doc["esp32cam_ip"] = camClient->getIP();
-        
-        String response;
-        serializeJson(doc, response);
-        request->send(success ? 200 : 500, "application/json", response);
+        AsyncWebServerResponse *response = request->beginResponse(302);
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Location", streamUrl);
+        request->send(response);
     });
     
     // API Auto Photo Toggle
@@ -179,7 +157,7 @@ String ESP32APIServer::generateWebInterface() {
     html += "<p>Distance: <span id='d'>--</span> cm | Gate: <span id='g'>--</span></p>";
     html += "<button onclick=\"fetch('/api/gate?action=open',{method:'POST'})\">OPEN</button> ";
     html += "<button onclick=\"fetch('/api/gate?action=close',{method:'POST'})\">CLOSE</button> ";
-    html += "<button onclick=\"fetch('/api/photo',{method:'POST'})\">PHOTO</button> ";
+    html += "<button onclick=\"window.open('/api/photo','_blank')\">PHOTO</button> ";
     html += "<button onclick=\"r()\">REFRESH</button>";
     html += "<script>function r(){fetch('/api/status').then(a=>a.json()).then(d=>{document.getElementById('d').innerHTML=d.distance.toFixed(1);document.getElementById('g').innerHTML=d.gate?'OPEN':'CLOSED'})}</script>";
     html += "</body></html>";
@@ -196,8 +174,7 @@ void ESP32APIServer::begin() {
     Serial.println("  GET  /api/distance  - Distance sensor");
     Serial.println("  GET  /api/gate      - Gate status");
     Serial.println("  POST /api/gate      - Gate control");
-    Serial.println("  POST /api/photo     - Take photo (returns image)");
-    Serial.println("  POST /api/photo/capture - Capture only (returns JSON)");
+    Serial.println("  GET  /api/photo     - Photo stream (redirects to ESP32-CAM)");
     Serial.println("  POST /api/auto      - Toggle auto photo");
     Serial.println("  GET  /api/esp32cam  - ESP32-CAM status");
 }
